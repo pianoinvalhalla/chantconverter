@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>gabc to LilyPond converter</h2>
+<p>by Vincent Mateo</p>
+
+<form>
+  <label for="gabc">gabc input</label><br>
+  <textarea id="gabc" name="gabc" rows="10" cols="30">The cat was playing in the garden.</textarea>
+  <br>
+  <p>The following fields are optional.</p>
+  <label for="title">title</label><br>
+  <input type="text" id="title" name="title"></input>
+  <br><br>
+  <label for="subtitle">subtitle</label><br>
+  <input type="text" id="subtitle" name="subtitle"></input>
+  <br><br>
+  <label for="poet">poet</label><br>
+  <input type="text" id="poet" name="poet"></input>
+  <br><br>
+  <label for="composer">composer</label><br>
+  <input type="text" id="composer" name="composer"></input>
+  <br><br>
+  <button type="button" onclick="convert()">Convert</button>
+  <br><br>
+  <label for="lilypond">LilyPond output</label><br>
+  <textarea id="lilypond" name="lilypond" rows="10" cols="30" readonly></textarea>
+  <br><br>
+</form>
+
+<script src="gabc2lilypond.js"></script>
+
+</body>
+</html>
