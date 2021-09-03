@@ -1,3 +1,209 @@
 function convert() {
-  document.getElementById("lilypond").value = document.getElementById("gabc").value;
+    //dummyConvert();
+    //return;
+    const input = document.getElementById("gabc").value;
+    let output = "Lorem ipsum";
+    try {
+        parsedInput = gabcparser.parse(input);
+        output = lilypondWriter(parsedInput);
+    }
+    catch (error) {
+        //output = "Error";
+        output = error.message;
+    }
+    document.getElementById("lilypond").value = output;
+}
+
+function dummyConvert() {
+    const input = document.getElementById("gabc").value;
+    let output = "Lorem ipsum";
+    try {
+        output = gabcparser.parse(input).toString();
+    }
+    catch (error) {
+        output = "Error";
+        //output = error.message;
+    }
+    document.getElementById("lilypond").value = output;
+}
+
+function lilypondWriter(parsedInput) {
+    const scoreAndLyrics = scoreAndLyricWriter(parsedInput.words);
+    let output = "";
+//    output = scoreAndLyrics.toString();
+    output += scoreAndLyrics.notes.join(" ");
+    output += "\n";
+    output += scoreAndLyrics.lyrics.join(" ")
+    return output;
+}
+
+function scoreAndLyricWriter(words) {
+    let outputNotes = [];
+    let outputLyrics = [];
+    let clef = null;
+    clef = "c3";
+    lPitch = new PitchConverter(clef);
+    let iNeedABar = false;
+    
+    function printNote(gabcpitch) {
+        return lPitch.lilypond(gabcpitch);
+    }
+    function printBar(gabcbar) {
+//        TODO
+        let s = "";
+        switch (gabcbar) {
+            case "::":
+                s = '\\bar "||"';
+                break;
+            case ":":
+                s = '\\bar "|"';
+                break;
+            case ";":
+                s = '\\halfBar';
+                break;
+            case ",":
+                s = '\\bar "\'"';
+                break;
+            default:
+        }
+        return s;
+    }
+    function setClef(gabcclef) {
+        clef = gabcclef;
+        lPitch.clef = clef;
+    }
+    function detectUppercase(note) {
+//        maybe someday: diamond shape
+        note.pitch = note.pitch.toLowerCase();
+    }
+    
+    words.forEach((word) => {
+//        outputNotes.push("foo");
+//        outputLyrics.push("bar");
+        word.syllables.forEach((syllable,index,array) => {
+//            outputNotes.push("F");
+            syllable.notes.forEach((note,index,array) => {
+//                outputNotes.push(note.pitch);
+                detectUppercase(note);
+                let s = "";
+                switch (note.pitch) {
+                    case "bar":
+                        s = printBar(note.mods[0]);
+                        //remove preceding extra blank bar
+                        const check = outputNotes.pop();
+                        if (check!=='\\bar ""') {
+                            outputNotes.push(check);
+                        }
+                        outputNotes.push(s);
+                        //prevent following extra blank bar
+                        iNeedABar = false;
+                        break;
+                    case "clef":
+                        setClef(note.mods[0]);
+//                        s += note.mods[0];
+                        iNeedABar = false;
+                        break;
+                    default:
+                        s = printNote(note.pitch);
+                        if (array.length > 1) {
+                            switch (index) {
+                                case 0:
+                                    s += "64(";
+                                    break;
+                                case array.length-1:
+                                    s += "4)";
+                                    break;
+                                default:
+                                    s += "64";
+                                    break;
+                            }
+                        } else { s += "4"; }
+//                        note.mods.forEach((mod) => {
+//                            switch (mod) {
+//                                case "w":
+//                            }
+//                        })
+                        outputNotes.push(s);
+                        iNeedABar = true;
+                }
+//                outputNotes.push(s);
+            })
+            let s = syllable.text;
+            if (index<array.length-1) { s += " --"; }
+            outputLyrics.push(s);
+        })
+        if (iNeedABar) { outputNotes.push('\\bar ""'); }
+    })
+    return {"notes":outputNotes,"lyrics":outputLyrics}
+}
+
+const converterTables = {
+    "c4": {
+        "a":"a",
+        "b":"b",
+        "c":"c'",
+        "d":"d'",
+        "e":"e'",
+        "f":"f'",
+        "g":"g'",
+        "h":"a'",
+        "i":"b'",
+        "j":"c''",
+        "k":"d''",
+        "l":"e''",
+        "m":"f''"
+    },
+    "c3": {
+        "a":"c'",
+        "b":"d'",
+        "c":"e'",
+        "d":"f'",
+        "e":"g'",
+        "f":"a'",
+        "g":"b'",
+        "h":"c''",
+        "i":"d''",
+        "j":"e''",
+        "k":"f''",
+        "l":"g''",
+        "m":"a''"
+    },
+    "c2": {
+        "a":"e'",
+        "b":"f'",
+        "c":"g'",
+        "d":"a'",
+        "e":"b'",
+        "f":"c''",
+        "g":"d''",
+        "h":"e''",
+        "i":"f''",
+        "j":"g''",
+        "k":"a''",
+        "l":"b''",
+        "m":"c'''"
+    },
+    "c1": {
+        "a":"g'",
+        "b":"a'",
+        "c":"b'",
+        "d":"c''",
+        "e":"d''",
+        "f":"e''",
+        "g":"f''",
+        "h":"g''",
+        "i":"a''",
+        "j":"b''",
+        "k":"c'''",
+        "l":"d'''",
+        "m":"e'''"
+    }
+}
+
+function PitchConverter(clef) {
+    this.clef = clef;
+    this.lilypond = function(gabcpitch) {
+        return converterTables[clef][gabcpitch];
+//        return "sss";
+    }
 }
