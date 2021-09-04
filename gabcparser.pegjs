@@ -41,14 +41,23 @@ Description
 	= n:Word+
 
 Word
-	= n:Syllable+ (_ / Newline)? {return {"syllables":n}}
+	= n:(Syllable / NakedText)+ (_ / Newline)* {return {"syllables":n}}
 
 Syllable
-	= a:Text? b:Notes {return {"text":a,"notes":b}}
+	= a:(Text / TagText)? b:Notes {return {"text":a,"notes":b}}
+
+TagText
+	= "<" (Escape / [^ %()>])+ ">" n:(Dchar / " ")* "</" (Escape / [^ %()>])+ ">" {return n.join("")}
+
+NakedText
+	= a:(Text / TagText) {return {"text":a,"notes":[]}}
 
 Text
-	= a:[^ %()] b:Dchar* {return a.concat(b.join("").replace(/[{}]/g,""))}
+	= b:(Dchar / DumbColon)+ {return b.join("").replace(/[{}]/g,"")}
     //removes {}
+
+DumbColon
+	= _? n:":" {return n}
 
 Notes
 	= "(" n:(Clef / Note / Bar)* ")" {return n}
@@ -69,10 +78,10 @@ Mod
 	= "sss" / "ss" / ".." / "vv" / Tweak / Escape / [^%():;,a-mA-M[\]]
 
 Tweak
-	= a:"[" b:(Escape / [^%()[\]])* c:"]" {return}
+	= a:"[" b:(Escape / [^%()[\]])* c:"]" {return a.concat(b.join(""),c)}
 
 Dchar
-	= Escape / [^%()]
+	= Escape / [^ %()<>\t\r\n]
 
 _ "whitespace"
 	= " "+

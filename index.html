@@ -1,9 +1,9 @@
----
-foo: bar
----
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+<title>gabc to LilyPond converter</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
 <body>
 
 <h2>gabc to LilyPond converter</h2>
@@ -13,28 +13,89 @@ foo: bar
   <label for="gabc">gabc input</label><br>
   <textarea id="gabc" name="gabc" rows="10" cols="30">The cat was playing in the garden.</textarea>
   <br>
-  <p>The following fields are optional.</p>
+  <label for="myfile">Import file:</label>
+  <input type="file" id="myfile" name="myfile" accept=".gabc">
+  <br><br>
+  <p>LilyPond header fields (optional)</p>
   <label for="title">title</label><br>
   <input type="text" id="title" name="title"></input>
-  <br><br>
+  <br>
   <label for="subtitle">subtitle</label><br>
   <input type="text" id="subtitle" name="subtitle"></input>
-  <br><br>
+  <br>
   <label for="poet">poet</label><br>
   <input type="text" id="poet" name="poet"></input>
-  <br><br>
+  <br>
   <label for="composer">composer</label><br>
   <input type="text" id="composer" name="composer"></input>
+  <br>
+  <label for="composer">copyright</label><br>
+  <input type="text" id="copyright" name="copyright"></input>
   <br><br>
   <button type="button" onclick="convert()">Convert</button>
   <br><br>
   <label for="lilypond">LilyPond output</label><br>
   <textarea id="lilypond" name="lilypond" rows="10" cols="30" readonly></textarea>
   <br><br>
+  <button type="button" id="copy">Copy output</button>
+  <button type="button" onclick="download('Untitled.lp',document.getElementById('lilypond').value)">Download .lp</button>
+  <br><br>
 </form>
+
+<h4>Instructions for easy PDF</h4>
+<ol type="1">
+    <li>Click the button to copy the LilyPond output</li>
+    <li>Open <a href="https://www.hacklily.org/">Hacklily</a></li>
+    <li>Delete all the code in the Hacklily editor (left side)</li>
+    <li>Paste (Control+V) LilyPond output into the Hacklily editor</li>
+    <li>In Hacklily's top menu bar, click File → Export → PDF</li>
+</ol>
+    
 
 <script src="gabc2lilypond.js"></script>
 <script src="gabcparser.js"></script>
+<script>
+      copyTextBtn = document.getElementById('copy');
+      copyTextBtn.addEventListener('click', function(event) {
+        let copyTextarea = document.getElementById('lilypond');
+        copyTextarea.focus();
+        copyTextarea.select();
+        try {
+          let successful = document.execCommand('copy');
+          let msg = successful ? 'successful' : 'unsuccessful';
+          alert('Copy text command was ' + msg);
+        } catch(err) {
+          alert('Unable to copy');
+        }
+      });
+</script>
+<script>
+    function download(filename, text) {
+      var element = document.createElement('a');
+      element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+      element.setAttribute('download', filename);
+
+      element.style.display = 'none';
+      document.body.appendChild(element);
+
+      element.click();
+
+      document.body.removeChild(element);
+    }
+</script>
+<script>
+    const fileinput = document.getElementById('myfile');
+    fileinput.addEventListener('change',importFile);
+    
+    function importFile() {
+        const reader = new FileReader();
+        const chosenfile = fileinput.files[0];
+        reader.readAsText(chosenfile);
+        reader.onload = function (event) {
+            document.getElementById("gabc").value = event.target.result;
+        }
+    }
+</script>
 
 </body>
 </html>
