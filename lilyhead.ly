@@ -41,6 +41,6 @@ whiteNote = \once \override NoteHead.duration-log = #1
     \omit Flag
     \omit TimeSignature
     \override Slur.direction = #DOWN
-    \override SpacingSpanner.common-shortest-duration = #(ly:make-moment 1/8)
+    \override SpacingSpanner.common-shortest-duration = #(ly:make-moment 1/12)
   }
 }

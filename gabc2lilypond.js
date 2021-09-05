@@ -1,11 +1,30 @@
+var lilyhead = "";
+fetch ("https://pianoinvalhalla.github.io/chantconverter/lilyhead.ly")
+//fetch ("lilyhead.ly")
+    .then(response => response.text())
+    .then(data => {
+        lilyhead = data;
+    })
+//const reader = new FileReader();
+//const chosenfile = "lilyhead.ly";
+//reader.readAsText(lilyh);
+//reader.onload = function (event) {
+//    lilyhead = event.target.result;
+//}
+
 function convert() {
     //dummyConvert();
     //return;
     const input = document.getElementById("gabc").value;
+    const title = document.getElementById("title").value;
+    const subtitle = document.getElementById("subtitle").value;
+    const poet = document.getElementById("poet").value;
+    const composer = document.getElementById("composer").value;
+    const copyright = document.getElementById("copyright").value;
     let output = "Lorem ipsum";
     try {
         parsedInput = gabcparser.parse(input);
-        output = lilypondWriter(parsedInput);
+        output = lilypondWriter(parsedInput,0,title,subtitle,"",poet,composer,copyright);
     }
     catch (error) {
         //output = "Error";
@@ -35,7 +54,42 @@ function lilypondWriter(parsedInput,transposition=0,title="",subtitle="",subsubt
     const lyricsBraces = "\n  }\n  \\addlyrics {\n    "
     const endBraces = "\n  }\n}"
     
-    let output = "";
+//    let output = "";
+    
+    
+    //try getting info from parsed gabc header
+    if (!title) {
+        try { title = parsedInput.header.name; }
+        catch (err) {}
+    }
+    if (!composer) {
+        try { composer = parsedInput.header.commentary; }
+        catch (err) {}
+    }
+    if (!subtitle) {
+        try { subtitle = parsedInput.header["office-part"]; }
+        catch (err) {}
+    }
+    
+    let output = lilyhead + "\n\n";
+    
+    output += "\\header {\n";
+    
+    //write lilypond header properties
+    [["title",title],
+     ["subtitle",subtitle],
+     ["subsubtitle",subsubtitle],
+     ["poet",poet],
+     ["composer",composer],
+     ["copyright",copyright],
+     ["tagline",tagline]
+     ].forEach((element) => {
+        if (element[1]) { output += '  '+element[0]+' = "'+element[1].replace('"','\\"')+'"\n'; }
+    })
+    
+    output += "}\n\n";
+    
+    
 //    output = scoreAndLyrics.toString();
     output += scoreBraces;
 //    output += scoreAndLyrics.notes.join(" ");
@@ -55,6 +109,7 @@ function scoreAndLyricWriter(words) {
 //    clef = "c3";
     let lPitch = new PitchConverter(clef);
     let iNeedABar = false;
+    let thisIsNotTheFirstClef = false;
     
     function printNote(gabcpitch) {
         return lPitch.lilypond(gabcpitch);
@@ -87,24 +142,24 @@ function scoreAndLyricWriter(words) {
 //        maybe someday: diamond shape
         note.pitch = note.pitch.toLowerCase();
     }
-    function fixLonelyText(t) {
-        switch (t) {
-            case null:
-                break;
-            case "*":
-            case "**":
-                t = "\\set stanza = \\markup {"+t+"}";
-                break;
-            default:
-                outputNotes.push("\\once \\hideNotes b'4")
-                t = "\\markup {"+t+"}";
-        }
-        return t;
-    }
+//    function fixLonelyText(t) {
+//        switch (t) {
+//            case null:
+//                break;
+//            case "*":
+//            case "**":
+//                t = "\\set stanza = \\markup {"+t+"}";
+//                break;
+//            default:
+//                outputNotes.push("\\once \\hideNotes b'4")
+//                t = "\\markup {"+t+"}";
+//        }
+//        return t;
+//    }
     function processTagAndBraces(t) {
         try {
             //strip braces
-            t = t.replace(/{}/g,"");
+            t = t.replace(/[{}]/g,"");
             //strip tags
             //TODO: actually process markup and character tags
             t = t.replace(/<\/?[a-zA-Z]+>/g,"");
@@ -129,7 +184,7 @@ function scoreAndLyricWriter(words) {
     function Syllable() {
         this.notes = [];
         this.text = "";
-        this.hyphen = "";
+        this.hyphen = " -- ";
         this.getLyric = function () {
             let t = this.text == null ? "" : this.text;
             let h = this.hyphen == null ? "" : this.hyphen;
@@ -137,12 +192,25 @@ function scoreAndLyricWriter(words) {
 //            n = n.concat(this.text,this.hyphen);
             return t.concat(h);
         }
+        this.fixLonelyText = function () {
+            switch (this.text) {
+                case null:
+                    break;
+                case "*":
+                case "**":
+                    this.text = "\\set stanza = \\markup {"+this.text+"}";
+                    break;
+                default:
+                    this.notes.push("\\once \\hideNotes b'4")
+                    this.text = "\\markup {"+this.text+"}";
+            }
+        }
     }
     Syllable.prototype.toString = function syllableToString() { return this.notes.join(" ") }
     
     function Note() {
         this.pitch = "";
-        this.value = "";
+        this.value = "64";
         this.slur = "";
         this.mods = [];
     }
@@ -251,10 +319,10 @@ function scoreAndLyricWriter(words) {
         word.syllables.forEach((syllable) => {
             let newSyllable = new Syllable();
             let syllableIsReady = false;
-//            let t = syllable.text;
-//            t = processTagAndBraces(t);
-//            newSyllable.text = t;
-            newSyllable.text = syllable.text;
+            let t = syllable.text;
+            t = processTagAndBraces(t);
+            newSyllable.text = t;
+//            newSyllable.text = processTagAndBraces(syllable.text);
             if (newSyllable.text != null) { syllableIsReady = true; }
 //            newSyllable.text = processTagAndBraces(syllable.text);
             syllable.notes.forEach((note) => {
@@ -263,6 +331,7 @@ function scoreAndLyricWriter(words) {
                 detectUppercase(note);
                 switch (note.pitch) {
                     case "bar":
+                        //TODO: barline with other stuff in the parentheses
                         //bar directly after some notes OR lonely text + bar
 //                        if (syllableIsReady) {
 ////                            newWord.bar = printBar(note.mods[0]);
@@ -276,10 +345,11 @@ function scoreAndLyricWriter(words) {
 //                            newWord = outputWords
 //
 //                        }
-                        newWord = outputWords.pop();
-                        //TODO: MAKE SURE THIS IS CORRECT AFTER PARSER CHANGES
-                        newWord.bar = printBar(note.mods[0][0]);
-                        outputWords.push(newWord);
+                        let prevWord = outputWords.pop();
+                        //DONE: MAKE SURE THIS IS CORRECT AFTER PARSER CHANGES
+                        //TODO: figure out consecutive barlines
+                        if (prevWord.bar === '\\bar ""') { prevWord.bar = printBar(note.mods[0]); }
+                        outputWords.push(prevWord);
                         break;
                     case "clef":
                         setClef(note.mods[0]);
@@ -287,6 +357,7 @@ function scoreAndLyricWriter(words) {
 //                        lPitch.clef = "c4";
 //                        newSyllable.text = "FOOBAR";
 //                        syllableIsReady = true;
+                        //TODO: handle new clef in the middle of the score
                         break;
                     default:
                         newNote.pitch = lPitch.lilypond(note.pitch);
@@ -335,11 +406,29 @@ function scoreAndLyricWriter(words) {
                 }
             })
             if (syllableIsReady) {
+                if (newSyllable.notes.length > 1) {
+                    const last = newSyllable.notes.length - 1;
+                    newSyllable.notes[0].slur = "(";
+                    newSyllable.notes[last].slur = ")";
+                    newSyllable.notes[last].value = newSyllable.notes[last].value.replace("6","");
+                }
+                else if (newSyllable.notes.length == 1) {
+                    newSyllable.notes[0].value = newSyllable.notes[0].value.replace("6","")
+                }
+                else {
+                    //TODO: what happens when a lonely text is in a multisyllabic word?
+                    newSyllable.fixLonelyText();
+                    newWord.bar = "";
+                }
                 newWord.syllables.push(newSyllable);
                 wordIsReady = true;
             }
         })
-        if (wordIsReady) { outputWords.push(newWord); }
+        if (wordIsReady) {
+            const last = newWord.syllables.length - 1;
+            if (last >= 0) { newWord.syllables[last].hyphen = ""; }
+            outputWords.push(newWord);
+        }
     })
     
     outputNotes = outputWords.join(" ");
@@ -357,6 +446,43 @@ function scoreAndLyricWriter(words) {
 function PitchConverter(clef) {
 //    const gabcpitches = ["a","b","c","d","e","f","g","h","i","j","k","l","m"];
 //    const lilypitches = ["f","g","a","b","c'","d'","e'","f'","g'","a'","b'","c''",]
+//    const gabctonumber = {
+//        "a":0,
+//        "b":1,
+//        "c":2,
+//        "d":3,
+//        "e":4,
+//        "f":5,
+//        "g":6,
+//        "h":7,
+//        "i":8,
+//        "j":9,
+//        "k":10,
+//        "l":11,
+//        "m":12
+//    }
+//    const lilypitches = {
+//        "natural": ["b,","c", "d","e","f","g","a","b","c'","d'","e'","f'","g'","a'","b'","c''","d''","e''","f''","g''","a''","b''","c'''","d'''","e'''"],
+//        "flat": ["bes,","ces","des","ees","fes","ges","aes","bes","ces'","des'","ees'","fes'","ges'","aes'","bes'","ces''","des''","ees''","fes''","ges''","aes''","bes''","ces'''","des'''","ees'''"],
+//        "sharp":["bis,","cis","dis","eis","fis","gis","ais","bis","cis'","dis'","eis'","fis'","gis'","ais'","bis'","cis''","dis''","eis''","fis''","gis''","ais''","bis''","cis'''","dis'''","eis'''"],
+//    }
+//    const offsetTable = {
+//        "c5":4,
+//        "c4":6,
+//        "c3":8,
+//        "c2":10,
+//        "c1":12,
+//        "f5":0,
+//        "f4":2,
+//        "f3":4,
+//        "f2":6,
+//        "f1":8,
+//        "cb5":4,
+//        "cb4":6,
+//        "cb3":8,
+//        "cb2":10,
+//        "cb1":12
+//    }
     const converterTables = {
         "c4": {
             "a":"a",

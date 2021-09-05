@@ -82,11 +82,10 @@ Pitch
     = [a-mA-M]
 
 Bar
-    = n:("::" / (":" [1-6_'\?]) / ";'" / ",_" / ",0" / [:;,`]) z:Z* {
-    z.unshift(n)
-    return {"pitch":"bar","mods":[z]}
+    = n:("::" / x:((":" [1-6_'\?]) / Z+) {return x.join("")} / ";'" / ",_" / ",0" / [:;,`]) {
+    return {"pitch":"bar","mods":[n]}
     }
-    //need to fix :1 :2 etc.
+    //DONE: need to fix :1 :2 etc.
 
 Clef
     = a:SingleClef b:("@" SingleClef)? {
@@ -96,7 +95,7 @@ SingleClef
     = a:([cf] "b"? [1-5]) {return a.join("")}
 
 Mod
-    = a:("sss" / "ss" / ".." / "vv" / Tweak / Escape / [^%():;,a-mA-M[\]]) b:[0-9]* {
+    = !Z a:("sss" / "ss" / ".." / "vv" / Tweak / Escape / [^%():;,a-mA-M[\]]) b:[0-9]* {
     return a.concat(b.join(""))}
 
 Tweak
