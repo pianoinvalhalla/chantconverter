@@ -41,7 +41,7 @@ Value
 
 Description
     = a:FirstClef n:Word+ {
-        n.unshift({"syllables":[{"text":null,"notes":[a]}]})
+        n.unshift({"syllables":[{"text":[],"notes":[a]}]})
         return n
         }
 
@@ -57,17 +57,20 @@ DescriptionComment
     //this works because * is greedy
 
 Syllable
-    = a:(TagText / Text)? b:Notes {return {"text":a,"notes":b}}
+    = a:([{}] / Tag / Text)* b:Notes {return {"text":a,"notes":b}}
 
-TagText
-    = a:"<" b:(Escape / [^ %()>])+ c:">" n:(Escape / [^%()<])* x:"</" y:(Escape / [^ %()>])+ z:">" {
-    return a.concat(b.join(""),c,n.join(""),x,y.join(""),z)}
+//TagText
+//    = a:"<" b:(Escape / [^ %()>])+ c:">" n:(Escape / [^%()<])* x:"</" y:(Escape / [^ %()>])+ z:">" {
+//    return a.concat(b.join(""),c,n.join(""),x,y.join(""),z)}
+
+Tag
+    = a:"<" b:(Escape / [^ %()>])+ c:">" {return a.concat(b.join(""),c)}
 
 NakedText
-    = a:(Text / TagText) {return {"text":a,"notes":[]}}
+    = a:Text {return {"text":[a],"notes":[]}}
 
 Text
-    = !TagText b:(Dchar / DumbColon)+ {return b.join("")}
+    = b:("T. P." / (!Tag x:Dchar {return x}) / DumbColon)+ {return b.join("")}
 
 DumbColon
     = _? n:":" {return n}
@@ -89,13 +92,13 @@ Bar
 
 Clef
     = a:SingleClef b:("@" SingleClef)? {
-    return {"pitch":"clef","mods":[a].concat(b == null ? [] : b)}}
+    return {"pitch":"clef","mods":[a].concat(b ? b : [])}}
 
 SingleClef
     = a:([cf] "b"? [1-5]) {return a.join("")}
 
 Mod
-    = !Z a:(x:("_"?) {return x.join("")} / "sss" / "ss" / ".." / "vv" / Tweak / Escape / [^%():;,a-mA-M[\]]) b:[0-9]* {
+    = !Z a:(x:("_"+) {return x.join("")} / "sss" / "ss" / ".." / "vv" / Tweak / Escape / [^%():;,a-mA-M[\]]) b:[0-9]* {
     return a.concat(b.join(""))}
 
 Tweak
@@ -105,7 +108,7 @@ Z
     = n:("z0" / [zZ])
 
 Dchar
-    = Escape / [^ %()\t\r\n]
+    = Escape / [^ %()\t\r\n{}]
 
 _ "whitespace"
     = " "+

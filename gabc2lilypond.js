@@ -167,16 +167,102 @@ function scoreAndLyricWriter(words) {
 //        }
 //        return t;
 //    }
-    function processTagAndBraces(t) {
-        try {
-            //strip braces
-            t = t.replace(/[{}]/g,"");
-            //strip tags
-            //TODO: actually process markup and character tags
-            t = t.replace(/<\/?[a-zA-Z]+>/g,"");
+//    function processTagAndBraces(t) {
+//        try {
+//            //strip braces
+//            t = t.replace(/[{}]/g,"");
+//            //strip tags
+//            //TODO: actually process markup and character tags
+//            t = t.replace(/<\/?[a-zA-Z]+>/g,"");
+//        }
+//        catch (err) {}
+//        return t;
+//    }
+    
+    const tagTracker = {
+        i:false,
+        b:false,
+        ul:false,
+        sc:false,
+        c:false,
+        sp:false,
+        v:false
+    }
+    
+    function processText(text) {
+        newText = "";
+        text.forEach((element) => {
+//            let value = true;
+            let tagmatch = element.match(/<(\/?)([^ %()]+)>/)
+            if (tagmatch) {
+                
+//                console.log(element)
+//                console.log(tagmatch)
+//                console.log(tagmatch[1])
+//                console.log(tagmatch[1] === "/")
+//                let value = !(tagmatch[1] === "/")
+//                console.log(value)
+//                tagTracker[tagmatch[2]] = (tagmatch[1] === "/")
+//                console.log(tagTracker["sp"])
+//                console.log(tagTracker[tagmatch[2]])
+//                tagTracker[tagmatch[2]] = value;
+                tagTracker[tagmatch[2]] = !(tagmatch[1] === "/")
+//                console.log(tagTracker["sp"])
+//                console.log(tagTracker[tagmatch[2]])
+//                tagTracker[tagmatch[2]] = true;
+//                console.log(tagTracker.sp)
+            }
+            else switch (element) {
+                case "{":
+                case "}":
+                    break;
+                case "V/":
+                    if (tagTracker.sp) { element = '℣' }
+                    printText(element)
+                    break;
+                case "R/":
+                    if (tagTracker.sp) { element = '℟' }
+                    printText(element)
+                    break;
+                    
+//                case "A/":
+//                    if (tagTracker.sp) {
+//                        newText += ℣
+//                        console.log(newText)
+//                    }
+//                    break;
+//                case "'ae":
+//                    if (tagTracker.sp) {
+//                        newText += ℣
+//                        console.log(newText)
+//                    }
+//                    break;
+                default:
+                    printText(element)
+            }
+            function printText(e) {
+                if (e) {
+                    if (tagTracker.i) { e = " \\italic "+e }
+                    if (tagTracker.b) { e = " \\bold "+e }
+                    if (tagTracker.ul) { e = " \\underline "+e }
+                    if (tagTracker.sc) { e = " \\caps "+e }
+                    if (tagTracker.c) { e = " \\with-color #red "+e }
+                    newText += e;
+                }
+//                console.log(newText)
+            }
+//            if (tagmatch && tagmatch[1]) { value = false; }
+//            if (tagmatch && tagmatch[2]) {
+//                tagTracker[tagmatch[2]] = value;
+//                console.log(tagTracker)
+//            }
+            
+        })
+        if (newText.includes("\\")) {
+            newText = " \\markup \\concat {"+newText+"}"
         }
-        catch (err) {}
-        return t;
+        return newText
+//        return processTagAndBraces(text.join(""));
     }
     
     function Word() {
@@ -195,9 +281,11 @@ function scoreAndLyricWriter(words) {
                 newSyllable.notes[0].slur = "(";
                 newSyllable.notes[last].slur = ")";
                 newSyllable.notes[last].value = newSyllable.notes[last].value.replace("6","");
+                if (!newSyllable.text) { newSyllable.text = "_" }
             }
             else if (newSyllable.notes.length == 1) {
                 newSyllable.notes[0].value = newSyllable.notes[0].value.replace("6","")
+                if (!newSyllable.text) { newSyllable.text = "_" }
             }
             else {
                 //TODO: what happens when a lonely text is in a multisyllabic word?
@@ -222,16 +310,18 @@ function scoreAndLyricWriter(words) {
             return t.concat(h);
         }
         this.fixLonelyText = function () {
+            this.hyphen = ""
             switch (this.text) {
                 case null:
                     break;
-                case "*":
-                case "**":
-                    this.text = "\\set stanza = \\markup {"+this.text+"}";
-                    break;
+//                case "*":
+//                case "**":
+//                    if (this.text.includes("\\markup")) { this.text = "\\set stanza = "+this.text }
+//                    else { this.text = "\\set stanza = \\markup {"+this.text+"}"; }
+//                    break;
                 default:
                     this.notes.push("\\once \\hideNotes b'4")
-                    this.text = "\\markup {"+this.text+"}";
+                    if (!this.text.includes('\\markup')) { this.text = " \\markup {"+this.text+"}"; }
             }
         }
     }
@@ -349,11 +439,12 @@ function scoreAndLyricWriter(words) {
         word.syllables.forEach((syllable) => {
             let newSyllable = new Syllable();
             let syllableIsReady = false;
-            let t = syllable.text;
-            t = processTagAndBraces(t);
-            newSyllable.text = t;
+//            let t = processText(syllable.text);
+//            t = processTagAndBraces(t);
+//            newSyllable.text = t;
+            newSyllable.text = processText(syllable.text)
 //            newSyllable.text = processTagAndBraces(syllable.text);
-            if (newSyllable.text != null) { syllableIsReady = true; }
+            if (newSyllable.text) { syllableIsReady = true; }
 //            newSyllable.text = processTagAndBraces(syllable.text);
             syllable.notes.forEach((note) => {
                 let newNote = new Note();
@@ -361,16 +452,22 @@ function scoreAndLyricWriter(words) {
                 detectUppercase(note);
                 switch (note.pitch) {
                     case "bar":
-                        //TODO: barline with other stuff in the parentheses
-                        if ((newSyllable.notes) || (newWord.syllables)) {
+                        //DONE: barline with other stuff in the parentheses
+//                        if (!!(newSyllable.notes) || !!(newWord.syllables)) {
+                        if ((newSyllable.notes.length > 0) || (newWord.syllables.length > 0)) {
                             if (syllableIsReady) {
+//                                newSyllable.hyphen = ""
                                 newWord.pushSyllable(newSyllable);
                                 newSyllable = new Syllable();
                                 newSyllable.text = "_";
                                 syllableIsReady = false;
                             }
                             newWord.bar = printBar(note.mods[0]);
+                            
+                            const last = newWord.syllables.length - 1;
+                            if (last >= 0) { newWord.syllables[last].hyphen = ""; }
                             outputWords.push(newWord);
+                            
                             newWord = new Word();
                             wordIsReady = false;
                         }
@@ -389,9 +486,22 @@ function scoreAndLyricWriter(words) {
 //                        }
                         else {
                             let prevWord = outputWords.pop();
+//                            if (newSyllable.text.match(/\*+|ij|iij/g)) {
+                            if (newSyllable.text.match(/ij/g)) {
+                                console.log(newSyllable.text)
+//                                newSyllable.hyphen = ""
+                                prevWord.pushSyllable(newSyllable)
+                                prevWord.syllables[prevWord.syllables.length-1].notes[0] = "\\once \\hideNotes b'64"
+                                newSyllable = new Syllable()
+                                newSyllable.text = "_";
+                                syllableIsReady = false;
+                            }
+//                            console.log(prevWord)
                             //DONE: MAKE SURE THIS IS CORRECT AFTER PARSER CHANGES
                             //TODO: figure out consecutive barlines
-                            if (prevWord.bar === '\\bar ""') { prevWord.bar = printBar(note.mods[0]); }
+                            if (prevWord.bar === '\\bar ""' || prevWord.bar === '') {
+                                console.log("replacing "+prevWord.bar+" with "+printBar(note.mods[0]));
+                                prevWord.bar = printBar(note.mods[0]); }
                             outputWords.push(prevWord);
                             lPitch.resetAccidentals(lPitch.clef)
                         }
