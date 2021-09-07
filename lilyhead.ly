@@ -27,9 +27,11 @@ quilisma = {
   \once \override NoteHead.text = \markup \musicglyph "noteheads.svaticana.quilisma"
 }
 
-ictus = \markup \halign #-13 \musicglyph "scripts.ictus"
+ictus = \markup { \halign #-13 \musicglyph "scripts.ictus" }
 
 whiteNote = \once \override NoteHead.duration-log = #1
+
+liquescent = \magnifyMusic 0.63
 
 \layout {
   indent = #0

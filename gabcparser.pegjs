@@ -95,7 +95,7 @@ SingleClef
     = a:([cf] "b"? [1-5]) {return a.join("")}
 
 Mod
-    = !Z a:("sss" / "ss" / ".." / "vv" / Tweak / Escape / [^%():;,a-mA-M[\]]) b:[0-9]* {
+    = !Z a:(x:("_"?) {return x.join("")} / "sss" / "ss" / ".." / "vv" / Tweak / Escape / [^%():;,a-mA-M[\]]) b:[0-9]* {
     return a.concat(b.join(""))}
 
 Tweak

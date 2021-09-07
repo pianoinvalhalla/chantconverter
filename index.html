@@ -35,40 +35,43 @@
   <button type="button" onclick="convert()">Convert</button>
   <br><br>
   <label for="lilypond">LilyPond output</label><br>
-  <textarea id="lilypond" name="lilypond" rows="10" cols="30" readonly></textarea>
+  <textarea id="lilypond" name="lilypond" rows="10" cols="30" onchange="updateHackLilyLink()"></textarea>
   <br><br>
-  <button type="button" id="copy">Copy output</button>
-  <button type="button" onclick="download('Untitled.ly',document.getElementById('lilypond').value)">Download .ly</button>
+  <a id="hacklilylink" target="_blank" style="text-decoration:none;">
+  <button type="button" id="hacklilybutton" disabled>Open in HackLily</button>
+  </a>
+  <button type="button" id="downloadbutton" onclick="download('Untitled.ly',document.getElementById('lilypond').value)" disabled>Download .ly</button>
   <br><br>
 </form>
 
 <h4>Instructions for easy PDF</h4>
 <ol type="1">
-    <li>Click the button to copy the LilyPond output</li>
-    <li>Open <a href="https://www.hacklily.org/" target="_blank">Hacklily</a></li>
-    <li>Delete all the code in the Hacklily editor (left side)</li>
-    <li>Paste (Control+V) LilyPond output into the Hacklily editor</li>
+<!--    <li>Click the button to copy the LilyPond output</li>-->
+<!--    <li>Open <a href="https://www.hacklily.org/" target="_blank">Hacklily</a></li>-->
+<!--    <li>Delete all the code in the Hacklily editor (left side)</li>-->
+<!--    <li>Paste (Control+V) LilyPond output into the Hacklily editor</li>-->
+    <li>Click "Open in HackLily"</li>
     <li>In Hacklily's top menu bar, click File → Export → PDF</li>
 </ol>
     
 
 <script src="gabc2lilypond.js"></script>
 <script src="gabcparser.js"></script>
-<script>
-      copyTextBtn = document.getElementById('copy');
-      copyTextBtn.addEventListener('click', function(event) {
-        let copyTextarea = document.getElementById('lilypond');
-        copyTextarea.focus();
-        copyTextarea.select();
-        try {
-          let successful = document.execCommand('copy');
-          let msg = successful ? 'successful' : 'unsuccessful';
-          alert('Copy text command was ' + msg);
-        } catch(err) {
-          alert('Unable to copy');
-        }
-      });
-</script>
+<!--<script>-->
+<!--      copyTextBtn = document.getElementById('copy');-->
+<!--      copyTextBtn.addEventListener('click', function(event) {-->
+<!--        let copyTextarea = document.getElementById('lilypond');-->
+<!--        copyTextarea.focus();-->
+<!--        copyTextarea.select();-->
+<!--        try {-->
+<!--          let successful = document.execCommand('copy');-->
+<!--          let msg = successful ? 'successful' : 'unsuccessful';-->
+<!--          alert('Copy text command was ' + msg);-->
+<!--        } catch(err) {-->
+<!--          alert('Unable to copy');-->
+<!--        }-->
+<!--      });-->
+<!--</script>-->
 <script>
     function download(filename, text) {
       var element = document.createElement('a');
@@ -94,6 +97,11 @@
         reader.onload = function (event) {
             document.getElementById("gabc").value = event.target.result;
         }
+    }
+</script>
+<script>
+    function updateHackLilyLink() {
+        document.getElementById('hacklilylink').href = "https://www.hacklily.org/#src="+encodeURIComponent(document.getElementById('lilypond').value)
     }
 </script>
 

@@ -25,9 +25,17 @@ function convert() {
     try {
         parsedInput = gabcparser.parse(input);
         output = lilypondWriter(parsedInput,0,title,subtitle,"",poet,composer,copyright);
+        document.getElementById("hacklilylink").href = "https://www.hacklily.org/#src="+encodeURIComponent(output);
+//        updateHackLilyLink();
+        document.getElementById("hacklilybutton").removeAttribute("disabled");
+        document.getElementById("downloadbutton").removeAttribute("disabled");
     }
     catch (error) {
-        //output = "Error";
+//        output = "Error";
+        document.getElementById("hacklilylink").removeAttribute("href");
+        document.getElementById("hacklilybutton").setAttribute("disabled",true);
+        document.getElementById("downloadbutton").setAttribute("disabled",true);
+        
         output = error.message;
     }
     document.getElementById("lilypond").value = output;
@@ -129,6 +137,9 @@ function scoreAndLyricWriter(words) {
             case ",":
                 s = '\\bar "\'"';
                 break;
+            case "`":
+                s = '\\breathe \\bar ""';
+                break;
             default:
                 s = '\\bar "" \%funny barline huh\n';
         }
@@ -178,6 +189,23 @@ function scoreAndLyricWriter(words) {
             })
             return n;
         }
+        this.pushSyllable = function(newSyllable) {
+            if (newSyllable.notes.length > 1) {
+                const last = newSyllable.notes.length - 1;
+                newSyllable.notes[0].slur = "(";
+                newSyllable.notes[last].slur = ")";
+                newSyllable.notes[last].value = newSyllable.notes[last].value.replace("6","");
+            }
+            else if (newSyllable.notes.length == 1) {
+                newSyllable.notes[0].value = newSyllable.notes[0].value.replace("6","")
+            }
+            else {
+                //TODO: what happens when a lonely text is in a multisyllabic word?
+                newSyllable.fixLonelyText();
+                this.bar = "";
+            }
+            this.syllables.push(newSyllable);
+        }
     }
     Word.prototype.toString = function wordToString() { return this.syllables.join(" ").concat(" ",this.bar) }
     
@@ -186,8 +214,9 @@ function scoreAndLyricWriter(words) {
         this.text = "";
         this.hyphen = " -- ";
         this.getLyric = function () {
-            let t = this.text == null ? "" : this.text;
-            let h = this.hyphen == null ? "" : this.hyphen;
+            let t = !(this.text) ? "" : this.text;
+            
+            let h = !(this.hyphen) ? "" : (this.text === "_" ? " " : this.hyphen);
 //            let n = "";
 //            n = n.concat(this.text,this.hyphen);
             return t.concat(h);
@@ -212,9 +241,10 @@ function scoreAndLyricWriter(words) {
         this.pitch = "";
         this.value = "64";
         this.slur = "";
-        this.mods = [];
+        this.articulations = [];
+        this.tweaks = [];
     }
-    Note.prototype.toString = function noteToString() {return this.pitch.concat(this.value,this.slur,this.mods.join(""))}
+    Note.prototype.toString = function noteToString() {return this.tweaks.join("").concat(this.pitch,this.value,this.slur,this.articulations.join(""))}
     
 //    words.forEach((word) => {
 ////        outputNotes.push("foo");
@@ -332,6 +362,18 @@ function scoreAndLyricWriter(words) {
                 switch (note.pitch) {
                     case "bar":
                         //TODO: barline with other stuff in the parentheses
+                        if ((newSyllable.notes) || (newWord.syllables)) {
+                            if (syllableIsReady) {
+                                newWord.pushSyllable(newSyllable);
+                                newSyllable = new Syllable();
+                                newSyllable.text = "_";
+                                syllableIsReady = false;
+                            }
+                            newWord.bar = printBar(note.mods[0]);
+                            outputWords.push(newWord);
+                            newWord = new Word();
+                            wordIsReady = false;
+                        }
                         //bar directly after some notes OR lonely text + bar
 //                        if (syllableIsReady) {
 ////                            newWord.bar = printBar(note.mods[0]);
@@ -345,14 +387,19 @@ function scoreAndLyricWriter(words) {
 //                            newWord = outputWords
 //
 //                        }
-                        let prevWord = outputWords.pop();
-                        //DONE: MAKE SURE THIS IS CORRECT AFTER PARSER CHANGES
-                        //TODO: figure out consecutive barlines
-                        if (prevWord.bar === '\\bar ""') { prevWord.bar = printBar(note.mods[0]); }
-                        outputWords.push(prevWord);
+                        else {
+                            let prevWord = outputWords.pop();
+                            //DONE: MAKE SURE THIS IS CORRECT AFTER PARSER CHANGES
+                            //TODO: figure out consecutive barlines
+                            if (prevWord.bar === '\\bar ""') { prevWord.bar = printBar(note.mods[0]); }
+                            outputWords.push(prevWord);
+                            lPitch.resetAccidentals(lPitch.clef)
+                        }
                         break;
                     case "clef":
                         setClef(note.mods[0]);
+                        console.log(lPitch.clef)
+                        lPitch.resetAccidentals(lPitch.clef)
 //                        setClef("c4");
 //                        lPitch.clef = "c4";
 //                        newSyllable.text = "FOOBAR";
@@ -362,43 +409,83 @@ function scoreAndLyricWriter(words) {
                     default:
                         newNote.pitch = lPitch.lilypond(note.pitch);
                         noteIsReady = true;
-//                        note.mods.forEach((mod) => {
-//                            //process numbers
-//                            if (!mod.includes("r")) { mod = mod.replace(/[0-9]/g,""); }
-//                            switch (mod) {
-//                                case "sss":
-//                                    //add a note
-//                                case "ss":
-//                                case "vv":
-//                                    //add a note
-//                                    break;
-//                                case "..":
-//                                    //add a dot to the previous note
-//                                    break;
-//                                case ".":
-//                                    //dot
-//                                    break;
-//                                case "w":
-//                                    //quilisma
-//                                    break;
-//                                case "~":
-//                                    //small
-//                                    break;
-//                                case "r":
-//                                    //white
-//                                    break;
-//                                case "x":
-//                                    //FLAT
-//                                    break;
-//                                case "y":
-//                                    //NATURAL
-//                                    break;
-//                                case "\#":
-//                                    //SHARP
-//                                    break;
-//                                default:
-//                            }
-//                        })
+                        note.mods.forEach((mod) => {
+                            //process numbers
+                            if (!mod.includes("r")) { mod = mod.replace(/[0-9]/g,""); }
+                            switch (mod) {
+                                case "sss": {
+                                    //add a note
+                                    let extraNote = new Note();
+                                    extraNote.pitch = newNote.pitch;
+                                    newSyllable.notes.push(extraNote);
+                                    }
+                                    //nobreak
+                                case "ss":
+                                case "vv":
+                                    //add a note
+                                    let extraNote = new Note();
+                                    extraNote.pitch = newNote.pitch;
+                                    newSyllable.notes.push(extraNote);
+                                    break;
+                                case "..":
+                                    //dot for previous note
+                                    try {
+                                        newSyllable.notes[newSyllable.notes.length-1].value += ".";
+                                    } catch (err) {
+                                        console.log(err)
+                                    }
+                                    //nobreak
+                                case ".":
+                                    //dot
+                                    newNote.value += ".";
+                                    break;
+                                case "w":
+                                    //quilisma
+                                    newNote.tweaks.push('\\quilisma ')
+                                    break;
+                                case "~":
+                                    //small
+                                    break;
+                                case "r":
+                                    //white
+                                    newNote.tweaks.push('\\whiteNote ')
+                                    break;
+                                case "'":
+                                    //ictus
+                                    newNote.articulations.push('^\\ictus')
+                                    break;
+                                case "___":
+                                    try {
+                                        newSyllable.notes[newSyllable.notes.length-2].articulations.push('^-')
+                                    } catch (err) {
+                                        console.log(err)
+                                    }
+                                    //nobreak
+                                case "__":
+                                    try {
+                                        newSyllable.notes[newSyllable.notes.length-1].articulations.push('^-')
+                                    } catch (err) {
+                                        console.log(err)
+                                    }
+                                    //nobreak
+                                case "_":
+                                    newNote.articulations.push('^-')
+                                    break;
+                                case "x":
+                                    lPitch.setAccidental(note.pitch,-1);
+                                    noteIsReady = false;
+                                    break;
+                                case "y":
+                                    lPitch.setAccidental(note.pitch,0);
+                                    noteIsReady = false;
+                                    break;
+                                case "\#":
+                                    lPitch.setAccidental(note.pitch,1);
+                                    noteIsReady = false;
+                                    break;
+                                default:
+                            }
+                        })
                 }
                 if (noteIsReady) {
                     newSyllable.notes.push(newNote);
@@ -406,21 +493,7 @@ function scoreAndLyricWriter(words) {
                 }
             })
             if (syllableIsReady) {
-                if (newSyllable.notes.length > 1) {
-                    const last = newSyllable.notes.length - 1;
-                    newSyllable.notes[0].slur = "(";
-                    newSyllable.notes[last].slur = ")";
-                    newSyllable.notes[last].value = newSyllable.notes[last].value.replace("6","");
-                }
-                else if (newSyllable.notes.length == 1) {
-                    newSyllable.notes[0].value = newSyllable.notes[0].value.replace("6","")
-                }
-                else {
-                    //TODO: what happens when a lonely text is in a multisyllabic word?
-                    newSyllable.fixLonelyText();
-                    newWord.bar = "";
-                }
-                newWord.syllables.push(newSyllable);
+                newWord.pushSyllable(newSyllable);
                 wordIsReady = true;
             }
         })
@@ -428,6 +501,7 @@ function scoreAndLyricWriter(words) {
             const last = newWord.syllables.length - 1;
             if (last >= 0) { newWord.syllables[last].hyphen = ""; }
             outputWords.push(newWord);
+            lPitch.resetAccidentals(lPitch.clef)
         }
     })
     
@@ -446,43 +520,48 @@ function scoreAndLyricWriter(words) {
 function PitchConverter(clef) {
 //    const gabcpitches = ["a","b","c","d","e","f","g","h","i","j","k","l","m"];
 //    const lilypitches = ["f","g","a","b","c'","d'","e'","f'","g'","a'","b'","c''",]
-//    const gabctonumber = {
-//        "a":0,
-//        "b":1,
-//        "c":2,
-//        "d":3,
-//        "e":4,
-//        "f":5,
-//        "g":6,
-//        "h":7,
-//        "i":8,
-//        "j":9,
-//        "k":10,
-//        "l":11,
-//        "m":12
-//    }
+    const gabctonumber = {
+        "a":0,
+        "b":1,
+        "c":2,
+        "d":3,
+        "e":4,
+        "f":5,
+        "g":6,
+        "h":7,
+        "i":8,
+        "j":9,
+        "k":10,
+        "l":11,
+        "m":12
+    }
 //    const lilypitches = {
 //        "natural": ["b,","c", "d","e","f","g","a","b","c'","d'","e'","f'","g'","a'","b'","c''","d''","e''","f''","g''","a''","b''","c'''","d'''","e'''"],
 //        "flat": ["bes,","ces","des","ees","fes","ges","aes","bes","ces'","des'","ees'","fes'","ges'","aes'","bes'","ces''","des''","ees''","fes''","ges''","aes''","bes''","ces'''","des'''","ees'''"],
 //        "sharp":["bis,","cis","dis","eis","fis","gis","ais","bis","cis'","dis'","eis'","fis'","gis'","ais'","bis'","cis''","dis''","eis''","fis''","gis''","ais''","bis''","cis'''","dis'''","eis'''"],
 //    }
-//    const offsetTable = {
-//        "c5":4,
-//        "c4":6,
-//        "c3":8,
-//        "c2":10,
-//        "c1":12,
-//        "f5":0,
-//        "f4":2,
-//        "f3":4,
-//        "f2":6,
-//        "f1":8,
-//        "cb5":4,
-//        "cb4":6,
-//        "cb3":8,
-//        "cb2":10,
-//        "cb1":12
-//    }
+    const lilypitches = {
+        "0": ["b,","c", "d","e","f","g","a","b","c'","d'","e'","f'","g'","a'","b'","c''","d''","e''","f''","g''","a''","b''","c'''","d'''","e'''"],
+        "-1": ["bes,","ces","des","ees","fes","ges","aes","bes","ces'","des'","ees'","fes'","ges'","aes'","bes'","ces''","des''","ees''","fes''","ges''","aes''","bes''","ces'''","des'''","ees'''"],
+        "1":["bis,","cis","dis","eis","fis","gis","ais","bis","cis'","dis'","eis'","fis'","gis'","ais'","bis'","cis''","dis''","eis''","fis''","gis''","ais''","bis''","cis'''","dis'''","eis'''"],
+    }
+    const offsetTable = {
+        "c5":4,
+        "c4":6,
+        "c3":8,
+        "c2":10,
+        "c1":12,
+        "f5":0,
+        "f4":2,
+        "f3":4,
+        "f2":6,
+        "f1":8,
+        "cb5":4,
+        "cb4":6,
+        "cb3":8,
+        "cb2":10,
+        "cb1":12
+    }
     const converterTables = {
         "c4": {
             "a":"a",
@@ -666,8 +745,40 @@ function PitchConverter(clef) {
 //        },
     }
     this.clef = clef;
+    console.log(clef + " " + this.clef)
+    this.resetAccidentals = function() {
+        this.accidentals = [0,0,0,0,0,0,0,0,0,0,0,0,0]
+        switch (this.clef) {
+            case "cb1":
+                this.accidentals[2] = -1;
+                this.accidentals[9] = -1;
+                console.log("cb1 2 9");
+                break;
+            case "cb2":
+                this.accidentals[4] = -1;
+                this.accidentals[11] = -1;
+                console.log("cb2 4 11");
+                break;
+            case "cb3":
+                this.accidentals[6] = -1;
+                console.log("cb3 6");
+                break;
+            case "cb4":
+                this.accidentals[8] = -1;
+                this.accidentals[1] = -1;
+                console.log("cb4 8 1");
+                break;
+            default:
+        }
+    }
+    this.setAccidental = function(gabcpitch,accidental=-1) {
+        this.accidentals[gabctonumber[gabcpitch]] = accidental
+    }
+    this.resetAccidentals();
     this.lilypond = function(gabcpitch) {
-        return converterTables[this.clef][gabcpitch];
+//        return converterTables[this.clef][gabcpitch];
+        i = gabctonumber[gabcpitch]
+        return lilypitches[this.accidentals[i]][i+offsetTable[this.clef]]
         
 //        return "sss";
     }
