@@ -2,21 +2,41 @@
 <html lang="en">
 <head>
 <title>gabc to LilyPond converter</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" charset="UTF-8">
+<style>
+    textarea {font-family:monospace;}
+    input[type="text"] {font-family:monospace;}
+</style>
 </head>
 <body>
 
 <h2>gabc to LilyPond converter</h2>
-<p>by Vincent Mateo</p>
+<p><div>by Vincent Mateo</div>
+<div>Feedback? Contact me at <a href="mailto:chantconverter@gmail.com">chantconverter@gmail.com</a></div></p>
+
+<h4>Instructions for converting gabc to LilyPond</h4>
+<ol type="1">
+    <li>Either import gabc file, or enter gabc directly into the input field</li>
+    <li>(Optional) Select transposition key</li>
+    <li>(Optional) Enter title and other fields (otherwise these will be taken from the gabc file)</li>
+    <li>Click "Convert"</li>
+</ol>
+<p>See "Instructions for easy PDF" below</p>
+<p><a href="https://gregobase.selapa.net/scores.php">GregoBase</a> is a good place to find scores</p>
 
 <form>
-  <label for="gabc">gabc input</label><br>
+    <fieldset>
+        <legend>gabc input</legend>
+  <label for="gabc" hidden>gabc input</label>
   <textarea id="gabc" name="gabc" rows="10" cols="30">The cat was playing in the garden.</textarea>
   <br>
   <label for="myfile">Import file:</label>
   <input type="file" id="myfile" name="myfile" accept=".gabc">
+      </fieldset>
   <br><br>
   
+  <fieldset>
+      <legend>Optional fields</legend>
   Transpose:
   <label for="key">"Do" =</label>
   <select id="key" name="key">
@@ -39,7 +59,7 @@
       <input type="radio" id="down" name="upOrDown" value=",">
           <label for="down">Down from C</label><br>
   
-  <p>LilyPond header fields (optional)</p>
+  <p>LilyPond header fields</p>
   <label for="title">title</label><br>
   <input type="text" id="title" name="title"></input>
   <br>
@@ -54,12 +74,18 @@
   <br>
   <label for="copyright">copyright</label><br>
   <input type="text" id="copyright" name="copyright"></input>
+  </fieldset>
   <br><br>
   
+  <fieldset>
+      <legend>Click here to convert</legend>
   <button type="button" onclick="convert()">Convert</button>
+  </fieldset>
   <br><br>
   
-  <label for="lilypond">LilyPond output</label><br>
+  <fieldset>
+      <legend>Lilypond output</legend>
+  <label for="lilypond" hidden>LilyPond output</label>
   <textarea id="lilypond" name="lilypond" rows="10" cols="30" onchange="updateHackLilyLink()"></textarea>
   <br><br>
   
@@ -67,6 +93,7 @@
   <button type="button" id="hacklilybutton" disabled>Open in HackLily</button>
   </a>
   <button type="button" id="downloadbutton" onclick="download('Untitled.ly',document.getElementById('lilypond').value)" disabled>Download .ly</button>
+  </fieldset>
   <br><br>
 </form>
 
@@ -79,7 +106,15 @@
     <li>Click "Open in HackLily"</li>
     <li>In Hacklily's top menu bar, click File → Export → PDF</li>
 </ol>
-    
+
+<h4>Known issues as of 9/9/21</h4>
+<ul>
+    <li>The first time a natural note appears after that note was flatted, LilyPond prints a natural accidental</li>
+    <li>If a syllable in the middle of a word has barlines in it, the hyphen will be missing</li>
+    <li>The converter will not help you find mistakes in the gabc</li>
+    <li>If the gabc puts text colons in certain places, you might get weird results</li>
+    <li>This tool is in beta and the site looks ugly!</li>
+</ul>
 
 <script src="gabc2lilypond.js"></script>
 <script src="gabcparser.js"></script>

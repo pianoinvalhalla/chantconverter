@@ -1,6 +1,6 @@
 var lilyhead = "";
-fetch ("https://pianoinvalhalla.github.io/chantconverter/lilyhead.ly")
-//fetch ("lilyhead.ly")
+//fetch ("https://pianoinvalhalla.github.io/chantconverter/lilyhead.ly")
+fetch ("lilyhead.ly")
     .then(response => response.text())
     .then(data => {
         lilyhead = data;
@@ -36,12 +36,12 @@ function convert() {
         document.getElementById("downloadbutton").removeAttribute("disabled");
     }
     catch (error) {
-//        output = "Error";
+        output = "Error";
         document.getElementById("hacklilylink").removeAttribute("href");
         document.getElementById("hacklilybutton").setAttribute("disabled",true);
         document.getElementById("downloadbutton").setAttribute("disabled",true);
         
-        output = error.message;
+//        output = error.message;
     }
     document.getElementById("lilypond").value = output;
 }
@@ -229,6 +229,10 @@ function scoreAndLyricWriter(words) {
                     if (tagTracker.sp) { element = '℟' }
                     printText(element)
                     break;
+                case "A/":
+                    if (tagTracker.sp) { element = 'Ⱥ' }
+                    printText(element)
+                    break;
                 case "'ae":
                 case "'æ":
                     if (tagTracker.sp) { element = 'ǽ' }
@@ -237,6 +241,16 @@ function scoreAndLyricWriter(words) {
                 case "'AE":
                 case "'Æ":
                     if (tagTracker.sp) { element = 'Ǽ' }
+                    printText(element)
+                    break;
+                case "'oe":
+                case "'œ":
+                    if (tagTracker.sp) { element = 'œ' } //no accent character exists in unicode
+                    printText(element)
+                    break;
+                case "'OE":
+                case "'Œ":
+                    if (tagTracker.sp) { element = 'Œ' }
                     printText(element)
                     break;
                 case "\\grecross":
