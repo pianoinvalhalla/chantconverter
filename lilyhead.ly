@@ -18,7 +18,8 @@ halfBar = {
   \once \override BreathingSign.stencil = #ly:breathing-sign::divisio-maior
   \once \override BreathingSign.Y-offset = #0
   \breathe
-  \bar ""
+  \once \omit Staff.BarLine
+  \bar "|"
 }
 
 quilisma = {
