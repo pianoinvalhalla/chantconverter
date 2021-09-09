@@ -16,6 +16,29 @@
   <label for="myfile">Import file:</label>
   <input type="file" id="myfile" name="myfile" accept=".gabc">
   <br><br>
+  
+  Transpose:
+  <label for="key">"Do" =</label>
+  <select id="key" name="key">
+      <option value="aes">A♭</option>
+      <option value="a">A</option>
+      <option value="bes">B♭</option>
+      <option value="b">B</option>
+      <option value="c" selected>C</option>
+      <option value="des">D♭</option>
+      <option value="d">D</option>
+      <option value="ees">E♭</option>
+      <option value="e">E</option>
+      <option value="f">F</option>
+      <option value="ges">G♭</option>
+      <option value="g">G</option>
+    </select>
+  <br>
+  <input type="radio" id="up" name="upOrDown" value="" checked>
+      <label for="up">Up from C</label>
+      <input type="radio" id="down" name="upOrDown" value=",">
+          <label for="down">Down from C</label><br>
+  
   <p>LilyPond header fields (optional)</p>
   <label for="title">title</label><br>
   <input type="text" id="title" name="title"></input>
@@ -32,11 +55,14 @@
   <label for="copyright">copyright</label><br>
   <input type="text" id="copyright" name="copyright"></input>
   <br><br>
+  
   <button type="button" onclick="convert()">Convert</button>
   <br><br>
+  
   <label for="lilypond">LilyPond output</label><br>
   <textarea id="lilypond" name="lilypond" rows="10" cols="30" onchange="updateHackLilyLink()"></textarea>
   <br><br>
+  
   <a id="hacklilylink" target="_blank" style="text-decoration:none;">
   <button type="button" id="hacklilybutton" disabled>Open in HackLily</button>
   </a>

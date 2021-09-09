@@ -23,8 +23,13 @@ function convert() {
     const copyright = document.getElementById("copyright").value;
     let output = "Lorem ipsum";
     try {
-        parsedInput = gabcparser.parse(input);
-        output = lilypondWriter(parsedInput,0,title,subtitle,"",poet,composer,copyright);
+        let parsedInput = gabcparser.parse(input);
+        let key = document.getElementById("key").value
+        if (document.getElementById("down").checked) {
+            key += document.getElementById("down").value
+//            key += ","
+        }
+        output = lilypondWriter(parsedInput,key,title,subtitle,"",poet,composer,copyright);
         document.getElementById("hacklilylink").href = "https://www.hacklily.org/#src="+encodeURIComponent(output);
 //        updateHackLilyLink();
         document.getElementById("hacklilybutton").removeAttribute("disabled");
@@ -54,11 +59,11 @@ function dummyConvert() {
     document.getElementById("lilypond").value = output;
 }
 
-function lilypondWriter(parsedInput,transposition=0,title="",subtitle="",subsubtitle="",poet="",composer="",copyright="",tagline="") {
+function lilypondWriter(parsedInput,key="c",title="",subtitle="",subsubtitle="",poet="",composer="",copyright="",tagline="") {
     const scoreAndLyrics = scoreAndLyricWriter(parsedInput.words);
     //TODO: add transposition
-    let key = "c'"
-    const scoreBraces = "\\score {\n  \\transpose c' "+key+" {\n    \\cadenzaOn\n    \\key c \\major\n    "
+//    let key = "c'"
+    const scoreBraces = "\\score {\n  \\transpose c "+key+" {\n    \\cadenzaOn\n    "
     const lyricsBraces = "\n  }\n  \\addlyrics {\n    "
     const endBraces = "\n  }\n}"
     
@@ -224,7 +229,24 @@ function scoreAndLyricWriter(words) {
                     if (tagTracker.sp) { element = '℟' }
                     printText(element)
                     break;
-                    
+                case "'ae":
+                case "'æ":
+                    if (tagTracker.sp) { element = 'ǽ' }
+                    printText(element)
+                    break;
+                case "'AE":
+                case "'Æ":
+                    if (tagTracker.sp) { element = 'Ǽ' }
+                    printText(element)
+                    break;
+                case "\\grecross":
+                case "\\grealtcross":
+                    if (tagTracker.v) { element = '✠' }
+                    printText(element)
+                    break;
+                case "+":
+                    printText("†")
+                    break;
 //                case "A/":
 //                    if (tagTracker.sp) {
 //                        newText += ℣
@@ -320,7 +342,7 @@ function scoreAndLyricWriter(words) {
 //                    else { this.text = "\\set stanza = \\markup {"+this.text+"}"; }
 //                    break;
                 default:
-                    this.notes.push("\\once \\hideNotes b'4")
+                    this.notes.push("\\once \\hideNotes c''8")
                     if (!this.text.includes('\\markup')) { this.text = " \\markup {"+this.text+"}"; }
             }
         }
@@ -465,7 +487,12 @@ function scoreAndLyricWriter(words) {
                             newWord.bar = printBar(note.mods[0]);
                             
                             const last = newWord.syllables.length - 1;
-                            if (last >= 0) { newWord.syllables[last].hyphen = ""; }
+                            if (last >= 0) {
+                                newWord.syllables[last].hyphen = "";
+                                //TODO: fix dropped hyphen for syllable in the middle of a word but with barlines in it
+
+//                                console.log("The problem is here")
+                            }
                             outputWords.push(newWord);
                             
                             newWord = new Word();
@@ -499,16 +526,16 @@ function scoreAndLyricWriter(words) {
 //                            console.log(prevWord)
                             //DONE: MAKE SURE THIS IS CORRECT AFTER PARSER CHANGES
                             //TODO: figure out consecutive barlines
-                            if (prevWord.bar === '\\bar ""' || prevWord.bar === '') {
-                                console.log("replacing "+prevWord.bar+" with "+printBar(note.mods[0]));
+                            if (prevWord.bar.includes('\\bar ""') || prevWord.bar === '') {
+//                                console.log("replacing "+prevWord.bar+" with "+printBar(note.mods[0]));
                                 prevWord.bar = printBar(note.mods[0]); }
                             outputWords.push(prevWord);
-                            lPitch.resetAccidentals(lPitch.clef)
                         }
+                        lPitch.resetAccidentals(lPitch.clef)
                         break;
                     case "clef":
                         setClef(note.mods[0]);
-                        console.log(lPitch.clef)
+//                        console.log(lPitch.clef)
                         lPitch.resetAccidentals(lPitch.clef)
 //                        setClef("c4");
 //                        lPitch.clef = "c4";
@@ -555,6 +582,7 @@ function scoreAndLyricWriter(words) {
                                     break;
                                 case "~":
                                     //small
+                                    newNote.tweaks.push('\\liquescent ')
                                     break;
                                 case "r":
                                     //white
@@ -623,6 +651,11 @@ function scoreAndLyricWriter(words) {
     })
 //    outputNotes = "foo"
 //    outputLyrics = "bar"
+    if (lPitch.clef.includes("b")) {
+        outputNotes = "\\key f \\major\n   "+outputNotes;
+    } else {
+        outputNotes = "\\key c \\major\n   "+outputNotes;
+    }
     
     return {"notes":outputNotes,"lyrics":outputLyrics}
 }
@@ -672,150 +705,30 @@ function PitchConverter(clef) {
         "cb2":10,
         "cb1":12
     }
-    const converterTables = {
-        "c4": {
-            "a":"a",
-            "b":"b",
-            "c":"c'",
-            "d":"d'",
-            "e":"e'",
-            "f":"f'",
-            "g":"g'",
-            "h":"a'",
-            "i":"b'",
-            "j":"c''",
-            "k":"d''",
-            "l":"e''",
-            "m":"f''"
-        },
-        "c3": {
-            "a":"c'",
-            "b":"d'",
-            "c":"e'",
-            "d":"f'",
-            "e":"g'",
-            "f":"a'",
-            "g":"b'",
-            "h":"c''",
-            "i":"d''",
-            "j":"e''",
-            "k":"f''",
-            "l":"g''",
-            "m":"a''"
-        },
-        "c2": {
-            "a":"e'",
-            "b":"f'",
-            "c":"g'",
-            "d":"a'",
-            "e":"b'",
-            "f":"c''",
-            "g":"d''",
-            "h":"e''",
-            "i":"f''",
-            "j":"g''",
-            "k":"a''",
-            "l":"b''",
-            "m":"c'''"
-        },
-        "c1": {
-            "a":"g'",
-            "b":"a'",
-            "c":"b'",
-            "d":"c''",
-            "e":"d''",
-            "f":"e''",
-            "g":"f''",
-            "h":"g''",
-            "i":"a''",
-            "j":"b''",
-            "k":"c'''",
-            "l":"d'''",
-            "m":"e'''"
-        },
-        "f4": {
-            "a":"d",
-            "b":"e",
-            "c":"f",
-            "d":"g",
-            "e":"a",
-            "f":"b",
-            "g":"c'",
-            "h":"d'",
-            "i":"e'",
-            "j":"f'",
-            "k":"g'",
-            "l":"a'",
-            "m":"b'"
-        },
-        "f3": {
-            "a":"f",
-            "b":"g",
-            "c":"a",
-            "d":"b",
-            "e":"c'",
-            "f":"d'",
-            "g":"e'",
-            "h":"f'",
-            "i":"g'",
-            "j":"a'",
-            "k":"b'",
-            "l":"c''",
-            "m":"d''"
-        },
-        "f2": {
-            "a":"a",
-            "b":"b",
-            "c":"c'",
-            "d":"d'",
-            "e":"e'",
-            "f":"f'",
-            "g":"g'",
-            "h":"a'",
-            "i":"b'",
-            "j":"c''",
-            "k":"d''",
-            "l":"e''",
-            "m":"f''"
-        },
-        "f1": {
-            "a":"c'",
-            "b":"d'",
-            "c":"e'",
-            "d":"f'",
-            "e":"g'",
-            "f":"a'",
-            "g":"b'",
-            "h":"c''",
-            "i":"d''",
-            "j":"e''",
-            "k":"f''",
-            "l":"g''",
-            "m":"a''"
-        }//,
-//        "cb4": {
+//    const converterTables = {
+//        "c4": {
 //            "a":"a",
-//            "b":"bes",
+//            "b":"b",
 //            "c":"c'",
 //            "d":"d'",
 //            "e":"e'",
 //            "f":"f'",
 //            "g":"g'",
 //            "h":"a'",
-//            "i":"bes'",
+//            "i":"b'",
 //            "j":"c''",
 //            "k":"d''",
 //            "l":"e''",
 //            "m":"f''"
 //        },
-//        "cb3": {
+//        "c3": {
 //            "a":"c'",
 //            "b":"d'",
 //            "c":"e'",
 //            "d":"f'",
 //            "e":"g'",
 //            "f":"a'",
-//            "g":"bes'",
+//            "g":"b'",
 //            "h":"c''",
 //            "i":"d''",
 //            "j":"e''",
@@ -823,12 +736,12 @@ function PitchConverter(clef) {
 //            "l":"g''",
 //            "m":"a''"
 //        },
-//        "cb2": {
+//        "c2": {
 //            "a":"e'",
 //            "b":"f'",
 //            "c":"g'",
 //            "d":"a'",
-//            "e":"bes'",
+//            "e":"b'",
 //            "f":"c''",
 //            "g":"d''",
 //            "h":"e''",
@@ -838,7 +751,7 @@ function PitchConverter(clef) {
 //            "l":"b''",
 //            "m":"c'''"
 //        },
-//        "cb1": {
+//        "c1": {
 //            "a":"g'",
 //            "b":"a'",
 //            "c":"b'",
@@ -853,42 +766,167 @@ function PitchConverter(clef) {
 //            "l":"d'''",
 //            "m":"e'''"
 //        },
-    }
+//        "f4": {
+//            "a":"d",
+//            "b":"e",
+//            "c":"f",
+//            "d":"g",
+//            "e":"a",
+//            "f":"b",
+//            "g":"c'",
+//            "h":"d'",
+//            "i":"e'",
+//            "j":"f'",
+//            "k":"g'",
+//            "l":"a'",
+//            "m":"b'"
+//        },
+//        "f3": {
+//            "a":"f",
+//            "b":"g",
+//            "c":"a",
+//            "d":"b",
+//            "e":"c'",
+//            "f":"d'",
+//            "g":"e'",
+//            "h":"f'",
+//            "i":"g'",
+//            "j":"a'",
+//            "k":"b'",
+//            "l":"c''",
+//            "m":"d''"
+//        },
+//        "f2": {
+//            "a":"a",
+//            "b":"b",
+//            "c":"c'",
+//            "d":"d'",
+//            "e":"e'",
+//            "f":"f'",
+//            "g":"g'",
+//            "h":"a'",
+//            "i":"b'",
+//            "j":"c''",
+//            "k":"d''",
+//            "l":"e''",
+//            "m":"f''"
+//        },
+//        "f1": {
+//            "a":"c'",
+//            "b":"d'",
+//            "c":"e'",
+//            "d":"f'",
+//            "e":"g'",
+//            "f":"a'",
+//            "g":"b'",
+//            "h":"c''",
+//            "i":"d''",
+//            "j":"e''",
+//            "k":"f''",
+//            "l":"g''",
+//            "m":"a''"
+//        }//,
+////        "cb4": {
+////            "a":"a",
+////            "b":"bes",
+////            "c":"c'",
+////            "d":"d'",
+////            "e":"e'",
+////            "f":"f'",
+////            "g":"g'",
+////            "h":"a'",
+////            "i":"bes'",
+////            "j":"c''",
+////            "k":"d''",
+////            "l":"e''",
+////            "m":"f''"
+////        },
+////        "cb3": {
+////            "a":"c'",
+////            "b":"d'",
+////            "c":"e'",
+////            "d":"f'",
+////            "e":"g'",
+////            "f":"a'",
+////            "g":"bes'",
+////            "h":"c''",
+////            "i":"d''",
+////            "j":"e''",
+////            "k":"f''",
+////            "l":"g''",
+////            "m":"a''"
+////        },
+////        "cb2": {
+////            "a":"e'",
+////            "b":"f'",
+////            "c":"g'",
+////            "d":"a'",
+////            "e":"bes'",
+////            "f":"c''",
+////            "g":"d''",
+////            "h":"e''",
+////            "i":"f''",
+////            "j":"g''",
+////            "k":"a''",
+////            "l":"b''",
+////            "m":"c'''"
+////        },
+////        "cb1": {
+////            "a":"g'",
+////            "b":"a'",
+////            "c":"b'",
+////            "d":"c''",
+////            "e":"d''",
+////            "f":"e''",
+////            "g":"f''",
+////            "h":"g''",
+////            "i":"a''",
+////            "j":"b''",
+////            "k":"c'''",
+////            "l":"d'''",
+////            "m":"e'''"
+////        },
+//    }
     this.clef = clef;
-    console.log(clef + " " + this.clef)
+//    console.log(clef + " " + this.clef)
     this.resetAccidentals = function() {
         this.accidentals = [0,0,0,0,0,0,0,0,0,0,0,0,0]
         switch (this.clef) {
             case "cb1":
                 this.accidentals[2] = -1;
                 this.accidentals[9] = -1;
-                console.log("cb1 2 9");
+//                console.log("cb1 2 9");
                 break;
             case "cb2":
                 this.accidentals[4] = -1;
                 this.accidentals[11] = -1;
-                console.log("cb2 4 11");
+//                console.log("cb2 4 11");
                 break;
             case "cb3":
                 this.accidentals[6] = -1;
-                console.log("cb3 6");
+//                console.log("cb3 6");
                 break;
             case "cb4":
                 this.accidentals[8] = -1;
                 this.accidentals[1] = -1;
-                console.log("cb4 8 1");
+//                console.log("cb4 8 1");
                 break;
             default:
         }
+        this.accidentalIsVisible = [false,false,false,false,false,false,false,false,false,false,false,false,false]
     }
     this.setAccidental = function(gabcpitch,accidental=-1) {
-        this.accidentals[gabctonumber[gabcpitch]] = accidental
+        let i = gabctonumber[gabcpitch]
+        this.accidentals[i] = accidental
+        this.accidentalIsVisible[i] = true
     }
     this.resetAccidentals();
     this.lilypond = function(gabcpitch) {
 //        return converterTables[this.clef][gabcpitch];
-        i = gabctonumber[gabcpitch]
-        return lilypitches[this.accidentals[i]][i+offsetTable[this.clef]]
+        let i = gabctonumber[gabcpitch]
+        let output = lilypitches[this.accidentals[i]][i+offsetTable[this.clef]] + (this.accidentalIsVisible[i] ? "!" : "")
+        this.accidentalIsVisible[i] = false
+        return output
         
 //        return "sss";
     }

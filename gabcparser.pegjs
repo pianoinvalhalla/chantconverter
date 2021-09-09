@@ -67,7 +67,7 @@ Tag
     = a:"<" b:(Escape / [^ %()>])+ c:">" {return a.concat(b.join(""),c)}
 
 NakedText
-    = a:Text {return {"text":[a],"notes":[]}}
+    = a:([{}] / Tag / Text)+ {return {"text":a,"notes":[]}}
 
 Text
     = b:("T. P." / (!Tag x:Dchar {return x}) / DumbColon)+ {return b.join("")}
@@ -85,7 +85,7 @@ Pitch
     = [a-mA-M]
 
 Bar
-    = n:("::" / x:((":" [1-6_'\?]) / Z+) {return x.join("")} / ";'" / ",_" / ",0" / [:;,`]) {
+    = n:("::" / x:((":" [1-6_'\?]) / Z+) {return x.join("")} / ";'" / ",_" / ",0" / [:;,`]) _? {
     return {"pitch":"bar","mods":[n]}
     }
     //DONE: need to fix :1 :2 etc.
