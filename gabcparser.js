@@ -682,6 +682,9 @@ gabcparser = /*
         s2 = peg$parseKeySeparator();
         if (s2 !== peg$FAILED) {
           s3 = peg$parseValue();
+          if (s3 === peg$FAILED) {
+            s3 = null;
+          }
           if (s3 !== peg$FAILED) {
             s4 = peg$parseHeaderFieldSeparator();
             if (s4 !== peg$FAILED) {

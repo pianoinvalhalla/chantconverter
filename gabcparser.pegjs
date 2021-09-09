@@ -25,7 +25,7 @@ HeaderFieldSeparator
     = (";;" / ";") _* (Newline / HeaderComment)+
 
 HeaderField
-    = a:Key KeySeparator b:Value HeaderFieldSeparator {return [a,b]}
+    = a:Key KeySeparator b:Value? HeaderFieldSeparator {return [a,b]}
 
 KeySeparator
     = ":" _*
