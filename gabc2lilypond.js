@@ -1,6 +1,6 @@
 var lilyhead = "";
-fetch ("https://pianoinvalhalla.github.io/chantconverter/lilyhead.ly")
-//fetch ("lilyhead.ly")
+//fetch ("https://pianoinvalhalla.github.io/chantconverter/lilyhead.ly")
+fetch ("lilyhead.ly")
     .then(response => response.text())
     .then(data => {
         lilyhead = data;
